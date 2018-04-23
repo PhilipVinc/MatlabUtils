@@ -12,15 +12,15 @@ function output = ReadAnalizeStoreData( obj )
 
     if ~loaded
         fprintf(['Analized data is not up to date. Reloading.\n']);
+        obj.ReadIniFile();
+        obj.ReadDatFiles();
     elseif (loaded && ~obj.keepInMemory)
         fprintf(['Skipping chunk logic.\n']);
         output = 'fast';
         return;
     end
     
-    obj.ReadIniFile();
     obj.ReadRegisterFast();
-    obj.ReadDatFiles();
     
     obj.chunkData = cell(1, length(obj.chunkNumbers));
     
