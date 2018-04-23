@@ -20,7 +20,7 @@ function output = ReadAllChunkNames( obj )
 
     fprintf(['Identified ',num2str(length(chunkFiles)) ,' chunks...']);
     
-    obj.chunkNumbers = chunksN;
+    obj.chunkNumbers = sort(chunksN);
     out='ciao';
 end
 

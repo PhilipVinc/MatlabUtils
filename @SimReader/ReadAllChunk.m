@@ -56,6 +56,11 @@ function nTrajsRead = ReadAllChunk( obj, chunkId, maxTrajs )
     fseek(iF, 0, -1);
 
     nTrajs = endP/(8*entrySize);
+    % Fix for max number of traj to load:
+    if nTrajs > maxTrajs
+        nTrajs=maxTrajs;
+    end
+    
     trajLengths = entryData(2:2:obj.varN*2);
     % Create the datasets;
     data = cell(1, obj.varN);
