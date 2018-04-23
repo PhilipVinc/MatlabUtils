@@ -59,7 +59,7 @@ function output = MergeChunksData( obj )
             k_t = k_t + chunkLenghts(j);
             
             % Free the memory
-            obj.chunkData{j}{i}=0;
+            obj.chunkData{j}{i}=[];
         end
     end
     
