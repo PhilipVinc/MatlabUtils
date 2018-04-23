@@ -7,7 +7,7 @@ classdef TWMCReader < SimReader
     end
 
     properties(Access = protected)
-        VERSION = 1.11;
+        VERSION = 1.15; % 1.15 = added bist_coeff
     end
     
     methods
@@ -19,7 +19,7 @@ classdef TWMCReader < SimReader
     end
     
     methods(Access = protected)
-        data = AverageExtractData( obj, data, params ); 
+        data = AverageExtractData( obj, data, params, analysisParams ); 
     end
     
     methods(Static)

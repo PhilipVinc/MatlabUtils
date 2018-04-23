@@ -15,6 +15,7 @@ function res = AverageExtractData( obj, data, params )
     %%%                         Hardcoded Stuff                         %%%
     %%%-----------------------------------------------------------------%%%
     % this is the point in time where I consider the cut.
+    beginCutFrac = 1/5;
     cutFrac = 4/5;
     n_workers = 2;
     computeG2 = true;
@@ -126,6 +127,9 @@ function res = AverageExtractData( obj, data, params )
         
         avg_beta_ij_t = mean(beta_ij_t, 4);
         avg_betaStar_ij_t = conj(avg_beta_ij_t);
+        avg_beta_ij = mean(avg_beta_ij_t, 3);
+        avg_betaStar_ij = mean(avg_betaStar_ij_t,3);
+
         avg_n_t =mean(n_ij_t, 4);
 
         corr1ij_t(1,1,:) = ones(size(corr1ij_t(1,1,:))).*nat_cut./(mean(mean(avg_betaStar_ij_t,1),2).*mean(mean(avg_beta_ij_t,1),2));
@@ -142,29 +146,24 @@ function res = AverageExtractData( obj, data, params )
                 % r'=r+d
                 % g1ij_t = \sum_r <a_r^\dag a_r'>/sqrt(<n_r><n_r'>)
                                         %   y    x   
-                g1ij_t(dx+1,dy+1,:) = real(mean(mean( ...%traj TR[ 
-                                                        mean((beta_ij_conj_t.*    ...% numerator: a_r^\dag          % avg ]Tr
-                                                                circshift(circshift(beta_ij_t, dx, 1), dy, 2) ) ,4)./ ...% a_r' % end numerator
-                                                            (sq_avg_nij_t.* ...
-                                                                circshift(circshift(sq_avg_nij_t,dx,1),dy,2) ) ...% denom sqrt(<n_r><n_r'>)
-                                                           ,1),2) ); % avg across xy and trajs
+                g1ij_t(dx+1,dy+1,:) = mean(mean( ...%traj TR[ 
+                                                        mean(mean(...
+                                                        (beta_ij_conj_t.*    ...% numerator: a_r^\dag          % avg ]Tr
+                                                                circshift(circshift(beta_ij_t, dx, 1), dy, 2) ) ,4),3)./ ...% a_r' % end numerator
+                                                            (mean(sq_avg_nij_t,3).* ...
+                                                                circshift(circshift(mean(sq_avg_nij_t,3),dx,1),dy,2) ) ...% denom sqrt(<n_r><n_r'>)
+                                                           ,1),2); % avg across xy and trajs
                                                         %   x  y   real
 
-                %g1ij_t(rx,ry,:) = real(mean(mean(mean(beta_ij_conj_t.*...
-                %    circshift(circshift(beta_ij_t,rx_l,1),ry_l,2),4),1),2)./nat_cut);
-                %corr1ij_t(rx,ry,:) = real(mean(mean(mean(beta_ij_conj_t.*...
-                %    circshift(circshift(beta_ij_t,rx_l,1),ry_l,2),4)./...
-                %    (avg_betaStar_ij_t.*circshift(circshift(avg_beta_ij_t,rx_l,1),ry_l,2)),1),2));
-
-                % r'=r+d
-                % corr1ij_t = \sum_r <a_r^\dag a_r'> - <a_r^\dag><a_r'>
                                         %       y   x        
-                corr1ij_t(dx+1,dy+1,:) = real(mean(mean(... % Tr[
-                                                            mean((beta_ij_conj_t.*    ...% numerator: a_r^\dag
-                                                                circshift(circshift(beta_ij_t, dx, 1), dy, 2) ) ,4) ./...%a_r'
-                                                            (avg_betaStar_ij_t.*...
-                                                                circshift(circshift(avg_beta_ij_t,dx,1),dy,2) ) ...
-                                                            ,1),2) );% avg across xy and trajs
+                corr1ij_t(dx+1,dy+1,:) = mean(mean(... % Tr[
+                                                            mean(mean(...
+                                                             (beta_ij_conj_t.*    ...% numerator: a_r^\dag
+                                                                circshift(circshift(beta_ij_t, dx, 1), dy, 2) ) ,4),3),1),2) -...%a_r'
+                                              mean(mean(...
+                                                             (avg_beta_ij.*...
+                                                                circshift(circshift(avg_betaStar_ij,dx,1),dy,2) ) ...
+                                                            ,1),2);% avg across xy and trajs
                                                         %    x  y   real
 
                 if (dx== 0 && dy == 0)
@@ -184,7 +183,7 @@ function res = AverageExtractData( obj, data, params )
         V = 0;
         for i=1:nx
             for j=1:ny
-                V = V + g1ij_a(i,j)*(distX(i)^2+distY(j)^2);
+                V = V + corr1ij_t(i,j)*(distX(i)^2+distY(j)^2);
             end
         end
         V = V/(nx*ny);
@@ -262,9 +261,16 @@ function res = AverageExtractData( obj, data, params )
     %%%-----------------------------------------------------------------%%%
     %%%                           Quantities                            %%%
     %%%-----------------------------------------------------------------%%%
+    fprintf('quans..');
     res.quan.n_hist_vals = n_t(:,end,:);
 
-    t_cut = floor(t_length*0.99);
+    t_cut = floor(t_length*0.95);
     res.quan.n_hist_tave_vals = mean(n_t(:,t_cut:end,:),2);
+    
+    %% Binder
+    t_begin ) ceil(t_length*1/5);
+    res.quan.bist_coeff_nt = moment(n_t(:,t_begin:end,:),2,2).^2./moment(n_t(:,t_begin:end,:),4,2);
+    res.quan.bist_coeff_alphat = abs(moment(n_t(:,t_begin:end,:),2,2)).^2./abs(moment(n_t(:,t_begin:end,:),4,2));
+    
 end
 
