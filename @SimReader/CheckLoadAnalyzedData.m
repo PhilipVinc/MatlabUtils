@@ -8,6 +8,7 @@ function loaded = CheckLoadAnalyzedData( obj )
     aveDataPath = fullfile(anPath, obj.fileAveragedFileName);
     quanDataPath = fullfile(anPath, obj.fileQuantitiesFileName);
     
+
     loaded = false;
 
     if ((obj.IsDataUpToDate(aveDataPath, dataPath) && ~obj.forceAnalysis) || obj.ForceNoAnalysis)

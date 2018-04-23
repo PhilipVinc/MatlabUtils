@@ -28,7 +28,8 @@ classdef (Abstract) SimReader < handle
         trajDataBegin;
         
         trajData;
-        
+        analysisParameters;
+
         chunkNumbers;
         chunksToRead;
         chunkData;
@@ -70,13 +71,16 @@ classdef (Abstract) SimReader < handle
     methods
         function obj = SimReader(simPath, varargin)
             
+            defAnPars.active = false;
+            
             p=inputParser;
             p.KeepUnmatched = true;
             addRequired(p,'simPath', @isstr);
             addParameter(p,'SaveTrajectories', false, @islogical);
             addParameter(p,'Trajectories', 0, @isnumeric);
-            addParameter(p,'ForceNoAnalysis', 0, @islogical);
-            addParameter(p,'Analyze', false, @islogical);
+            addParameter(p,'ForceNoAnalysis', false, @islogical);
+            addParameter(p,'ForceAnalysis', false, @islogical);
+            addParameter(p,'AnalysisParameters', defAnPars, @isstruct);
             parse(p, simPath, varargin{:});
             pars=p.Results;
             
@@ -94,13 +98,19 @@ classdef (Abstract) SimReader < handle
             obj.keepInMemory = pars.SaveTrajectories;
             obj.ForceNoAnalysis = pars.ForceNoAnalysis;
             obj.trajsToKeep = pars.Trajectories;
+
+            obj.analysisParameters = pars.AnalysisParameters;
+            if (~isfield(obj.analysisParameters, 'active'))
+                obj.analysisParameters.active = true;
+            end
+
             if (obj.keepInMemory && obj.trajsToKeep == 0)
                 obj.trajsToKeep = intmax;
             elseif (~obj.keepInMemory && obj.trajsToKeep ~= 0)
                 obj.keepInMemory = true;
             end
             
-            obj.forceAnalysis = pars.Analyze;
+            obj.forceAnalysis = pars.ForceAnalysis;
             obj.params = [];
             
             obj.magicSignature = [137; 80; 78; 67; 13; 10; 26; 10];
@@ -162,6 +172,7 @@ classdef (Abstract) SimReader < handle
     methods(Access = protected)
         
         output = ReadSimulationRegister(obj);
+        output = ReadAnalyzeChunk(obj, chunkId, storeFlag);
         output = ReadIniFile(obj);
         output = ReadTrajectoriesInRegister( obj );
         nTrajsRead = ReadAllChunk( obj, chunkId, nMaxTrajsToLoad );

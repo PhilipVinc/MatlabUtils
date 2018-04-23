@@ -14,6 +14,7 @@ function output = ReadAnalizeStoreData( obj )
         fprintf(['Analized data is not up to date. Reloading.\n']);
         obj.ReadIniFile();
         obj.ReadDatFiles();
+        obj.params.analysisParameters = obj.analysisParameters;
     elseif (loaded && ~obj.keepInMemory)
         fprintf(['Skipping chunk logic.\n']);
         output = 'fast';
@@ -53,7 +54,7 @@ function output = ReadAnalizeStoreData( obj )
             fprintf(['Skipping chunk #', num2str(chunkId), ': alredy analyzed.\n']);
             continue;
         % if we have to reload because we must
-        elseif (~obj.IsDataUpToDate(aveCnkPath, cIPath) || obj.forceAnalysis)
+        elseif ((~obj.IsDataUpToDate(aveCnkPath, cIPath) || obj.forceAnalysis) && ~obj.ForceNoAnalysis)
             fprintf( ['Reloading all chunk # ', num2str(chunkId), ' :\n']);
             fprintf( ['\tReading...']);
             nLoaded = obj.ReadAllChunk(i);
@@ -67,7 +68,7 @@ function output = ReadAnalizeStoreData( obj )
         end
 
         % Check if analysis of the chunk is up to date. In this case, just load the data
-        if (obj.IsDataUpToDate(aveCnkPath, cIPath) && ~obj.forceAnalysis)
+        if ((obj.IsDataUpToDate(aveCnkPath, cIPath) && ~obj.forceAnalysis) || obj.ForceNoAnalysis)
             fprintf(['\tSkipping Analysis (alredy done).\n']);
             %continue;
         else 
