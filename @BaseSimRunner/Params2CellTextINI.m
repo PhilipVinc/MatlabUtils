@@ -1,8 +1,8 @@
-function paramsText = Params2CellText( obj )
+function paramsText = Params2CellTextINI( obj )
 %CREATEINIFILE Summary of this function goes here
 %   Detailed explanation goes here
     
-    paramsText = cell(1,length(obj.params));
+    paramsText = {};
     
     allKeys = keys(obj.params);
     for i=1:length(obj.params)
@@ -10,6 +10,9 @@ function paramsText = Params2CellText( obj )
         if isnumeric(tmp)          
             if (numel(tmp) ~=1)
                 % If it's complex, interleave real and complex part
+                fname = ['_',allKeys{i},'.dat'];
+                %paramsText{end+1} = ['"',allKeys{i}, '" = "', fname,'"'];
+                paramsText{end+1} = [allKeys{i}, ' = ', fname ];
                 if ~isreal(tmp)
                     tmpr=real(tmp);
                     tmpi=imag(tmp);
@@ -18,22 +21,26 @@ function paramsText = Params2CellText( obj )
                     tmpEx(:,1:2:end)=tmpr;
                     tmpEx(:,2:2:end)=tmpi;
                     tmp=tmpEx;
+                    tmpStr = sprintf('%i, ', size(tmpr));
+                    tmpStr = tmpStr(1:end-2);
+                else
+                    tmpStr = sprintf('%i, ', size(tmp));
+                    tmpStr = tmpStr(1:end-2);
                 end
-                
-                fname = ['_',allKeys{i},'.dat'];
+
                 dlmwrite(fullfile(obj.simPath,fname), tmp, '\t');
-                tmp = fname;
             else
                 if imag(tmp) == 0
                     tmp = num2str(tmp);
+                    paramsText{end+1} = [allKeys{i}, ' = ', tmp];
                 else % How to write complex numbers
-                    tmp = ['( ', num2str(real(tmp)), ', ',...
-                                num2str(imag(tmp)), ' )'];
+                    paramsText{end+1} = ['"',allKeys{i}, '.real" = ', num2str(real(tmp))];
+                    paramsText{end+1} = ['"',allKeys{i}, '.imag" = ', num2str(imag(tmp))];
                 end
             end
+        else
+            paramsText{end+1} = [allKeys{i}, ' = ', tmp];
         end
-        paramsText{i} = [allKeys{i}, ' = ', tmp];
     end
-    
 end
 

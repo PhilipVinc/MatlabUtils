@@ -8,12 +8,15 @@ classdef BaseSimRunner < handle
         simName = '';
         simPath = '';
         parentPath = '.';
+
+        fileFormat = 'ini';
     end
     
     properties (Access = protected)
         programName = 'sim';
         programRelativePath = '$HOME/bin/';
         iniFileName = '_sim.ini';
+        tomlFileName = '_sim.toml';
         nCores = feature('numcores');
         hasName=false;
     end
@@ -31,7 +34,8 @@ classdef BaseSimRunner < handle
         end
         
         CreateFolder(obj, folder);
-        paramsText = Params2CellText( obj )
+        paramsText = Params2CellTextToml( obj )
+        paramsText = Params2CellTextINI( obj )
         SaveTextFileByLine( obj, filePath, data);
         pulseData = CreateTimeDependentPulse( obj);
         cellText = Pulse2CellText( obj, pulseData );
@@ -63,8 +67,11 @@ classdef BaseSimRunner < handle
             end
             
             obj.PostProcessParams();
-            
-            paramsText = obj.Params2CellText();
+            if (obj.fileFormat == 'ini')
+                paramsText = obj.Params2CellTextINI();
+            else
+                paramsText = obj.Params2CellTextToml();
+            end
             obj.SaveTextFileByLine(obj.IniFilePath(), paramsText);
         end
         
@@ -80,7 +87,12 @@ classdef BaseSimRunner < handle
         end
         
         function fName = IniFilePath(obj)
-            fName = fullfile(obj.simPath, obj.iniFileName);
+            if (obj.fileFormat == 'ini')
+                fName = obj.iniFileName;
+            else
+                fName = obj.tomlFileName;
+            end
+            fName = fullfile(obj.simPath, fName);
         end
         
         function GenerateName(obj)
@@ -96,6 +108,10 @@ classdef BaseSimRunner < handle
         function SetName(obj, name)
             obj.simName = [name, '_', datestr(now, 'yy-mm-dd_HH-MM-SS')];
             obj.hasName = true;
+        end
+
+        function SetTOML(obj)
+            obj.fileFormat = 'toml';
         end
         
         function SetProgram(obj, newProgram)
