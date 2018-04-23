@@ -183,6 +183,23 @@ classdef LiebRunner < BaseSimRunner
             obj.params('F_C')=Fc;
         end
 
+        function Damp(obj, key)
+            if isKey(obj.params, key)
+                val = obj.params(key);
+                if isKey(obj.params, [key, '_attenuation_a'])
+                    val(1:3:end) = val(1:3:end)*obj.params([key, '_attenuation_a']);
+                end
+                if isKey(obj.params, [key, '_attenuation_b'])
+                    val(2:3:end) = val(2:3:end)*obj.params([key, '_attenuation_b']);
+                end
+                if isKey(obj.params, [key, '_attenuation_c'])
+                    val(3:3:end) = val(3:3:end)*obj.params([key, '_attenuation_c']);
+                end
+
+                obj.params(key) = val;
+            end
+        end
+
         function CreateTimeDependent(obj, key)
             % if no speed specified, then no time dependence
             obj.MergeCellsInSingleEntry([key, '_speed']);
@@ -207,6 +224,7 @@ classdef LiebRunner < BaseSimRunner
             
             F0 = 0;
             obj.SetKandGaussian([key, '_start']);
+            obj.Damp([key, '_start']);
             if isKey(obj.params,[key,'_start'])
                 F0 = obj.params([key,'_start']);
                 remove(obj.params, [key,'_start']);
@@ -218,6 +236,7 @@ classdef LiebRunner < BaseSimRunner
             speed = obj.params([key,'_speed']);
 
             obj.SetKandGaussian([key, '_end']);
+            obj.Damp([key, '_end']);
             Fend =  obj.params([key, '_end']);
             remove(obj.params, [key,'_end']);
             
@@ -245,7 +264,7 @@ classdef LiebRunner < BaseSimRunner
             
             for t=unique(sort(tups))
                 times = [times, t];
-                fVals = Fend
+                fVals = Fend;
                 values{end+1} = fVals;
             end
             
@@ -263,7 +282,7 @@ classdef LiebRunner < BaseSimRunner
             Fup = values{end};
             for t=unique(sort(tdowns))
                 times = [times, t];
-                fVals = F0
+                fVals = F0;
                 fVals(fVals < F0) = F0(fVals < F0); % Fix 
                 values{end+1} = fVals;
             end

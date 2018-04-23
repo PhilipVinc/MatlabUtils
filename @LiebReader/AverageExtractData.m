@@ -288,5 +288,105 @@ function res = AverageExtractData( obj, data, params )
     %%%                           Quantities                            %%%
     %%%-----------------------------------------------------------------%%%
     res.quan.n_hist_vals = data{trajId}(:,end,:);
+
+
+    %%%-----------------------------------------------------------------%%%
+    %%%                Special additional analysis Params               %%%
+    %%%-----------------------------------------------------------------%%%
+
+    if params.analysisParameters.active == true
+        fprintf('Computing additional magic analysis...');
+        anPar = params.analysisParameters;
+        %pars
+        smoothWidth = anPar.smoothWidth;
+        tSkip = anPar.tSkip;
+        nMinA = anPar.nMinA;  nMinB = anPar.nMinB;  nMinC = anPar.nMinC;
+        nMaxA = anPar.nMaxA;  nMaxB = anPar.nMaxB;  nMaxC = anPar.nMaxC;
+        nBins = anPar.nBins;
+
+        % do the binning
+        nEdgesA = linspace(nMinA, nMaxA, nBins+1);
+        dNA = nEdgesA(2)-nEdgesA(1);
+        NvalsA = nEdgesA(1:end-1) + diff(nEdgesA);
+
+        nEdgesB = linspace(nMinB, nMaxB, nBins+1);
+        dNB = nEdgesB(2)-nEdgesB(1);
+        NvalsB = nEdgesB(1:end-1) + diff(nEdgesB);
+
+        nEdgesC = linspace(nMinC, nMaxC, nBins+1);
+        dNC = nEdgesC(2)-nEdgesC(1);
+        NvalsC = nEdgesC(1:end-1) + diff(nEdgesC);
+
+        % Average across al A,B,C
+        nA_t = squeeze(mean(n_t(1:3:end,:,:),1));
+        nB_t = squeeze(mean(n_t(2:3:end,:,:),1));
+        nC_t = squeeze(mean(n_t(3:3:end,:,:),1));
+        
+        % smooth the data
+        for i=1:n_traces
+            nA_t(:,i) = smoothFirst(nA_t(:,i), smoothWidth);
+            nB_t(:,i) = smoothFirst(nB_t(:,i), smoothWidth);
+            nC_t(:,i) = smoothFirst(nC_t(:,i), smoothWidth);
+        end
+
+        % Get only a subset of the data along time
+        nA_t = nA_t(1:tSkip:end,:);
+        nB_t = nB_t(1:tSkip:end,:);
+        nC_t = nC_t(1:tSkip:end,:);
+
+        % fix outliers
+        nA_t(nA_t<nMinA) = nMinA;  nA_t(nA_t>nMaxA) = nMaxA;
+        nB_t(nB_t<nMinB) = nMinB;  nB_t(nB_t>nMaxB) = nMaxB;
+        nC_t(nC_t<nMinC) = nMinC;  nC_t(nC_t>nMaxC) = nMaxC;
+        
+        %
+        tVals = params.t(1:tSkip:end);
+        FVals_t = res.params.Ftot_t(1:tSkip:end);
+
+        % Fix for the fact that Fvalues might be slightly asymmetric when going up and down the pulse.
+        % Here I take the values going up, and 'interpolate' the values going down to those going up.
+        [maxF, maxFId]=max(FVals_t);
+        if (maxFId < length(tVals))
+            Fgro = FVals_t(1:maxFId);
+            Fdes = FVals_t(maxFId+1:end);
+            Fdes_corr = interp1(Fgro, Fgro, Fdes, 'nearest');
+            FVals_t_corrected = [Fgro; Fdes_corr];
+            FVals_t = FVals_t_corrected;
+        end
+
+        [Funique, ~, uniqueIds] = unique(FVals_t);
+        nFvals = length(Funique);
+        PnA = zeros(nFvals,nBins); PnB = PnA; PnC = PnA;
+
+
+        % iterate over time
+        for i=1:size(nA_t, 1)
+            [nbinvals_aveA, ~] = histcounts(nA_t(i,:), nEdgesA, 'Normalization', 'count');
+            [nbinvals_aveB, ~] = histcounts(nB_t(i,:), nEdgesB, 'Normalization', 'count');
+            [nbinvals_aveC, ~] = histcounts(nC_t(i,:), nEdgesC, 'Normalization', 'count');
+
+            Fid = uniqueIds(i);
+            PnA(Fid,:) = PnA(Fid,:) + nbinvals_aveA;
+            PnB(Fid,:) = PnB(Fid,:) + nbinvals_aveB;
+            PnC(Fid,:) = PnC(Fid,:) + nbinvals_aveC;
+        end
+        
+        % normalize
+        n = sum(PnA,2)*dNA; % Compute norms of columns
+        PnA = bsxfun(@rdivide,PnA,n); % Normalize M
+        n = sum(PnB,2)*dNB; % Compute norms of columns
+        PnB = bsxfun(@rdivide,PnB,n); % Normalize M
+        n = sum(PnC,2)*dNC; % Compute norms of columns
+        PnC = bsxfun(@rdivide,PnC,n); % Normalize M
+
+        res.params.NvalsA = NvalsA;
+        res.params.NvalsB = NvalsB;
+        res.params.NvalsC = NvalsC;
+        res.params.Fvals = Funique;
+        res.params.Ivals = res.params.Itot_t(uniqueIds);
+        res.ave.PnA = PnA;
+        res.ave.PnB = PnB;
+        res.ave.PnC = PnC;
+    end
 end
 
