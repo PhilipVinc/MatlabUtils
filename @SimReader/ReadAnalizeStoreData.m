@@ -81,8 +81,13 @@ function output = ReadAnalizeStoreData( obj )
             params.n_traj = obj.chunkTrajN(i);
             averaged = res.ave;
             quantities = res.quan;
-            save(aveCnkPath, 'averaged', 'params');
-            
+            if i==1
+                save(aveCnkPath, 'averaged', 'params');
+            else
+                clear params;
+                params.n_traj = obj.chunkTrajN(i);
+                save(aveCnkPath, 'averaged', 'params');
+            end            
             % This fix is needed because thtop has a future date.
             obj.FixEditDate(aveCnkPath, cIPath);
             quanCnkPath = obj.QuantitiesChunkPath(chunkId);
@@ -105,7 +110,7 @@ function output = ReadAnalizeStoreData( obj )
     
     if (analizedSomethingNew || ~loaded)
         obj.AverageMergeChunks();
-        obj.QuantitiesMergeChunks();
+        obj.QuantitiesMergeChunks(obj.params.n_traj);
     end
 
     if obj.keepInMemory

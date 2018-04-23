@@ -6,14 +6,12 @@ function output = AverageMergeChunks( obj )
     chunks = cell(1, nChunks);
 
     fprintf(['Averaging ', num2str(nChunks), ' average - value chunks.']);
-    fprintf(['\tReading...']);
-        
-    for i=1:nChunks
-        aveCnkPath = obj.AveragedChunkPath(obj.chunkNumbers(i));       
-        tmp = load(aveCnkPath);
-        chunks{i} = tmp;
-    end
-    fprintf(['Done!\n\tAveraging...']);
+    fprintf(['\tReading First chunk...']);
+
+    aveCnkPath = obj.AveragedChunkPath(obj.chunkNumbers(1));       
+    chunks{1} = load(aveCnkPath);
+
+    fprintf(['\tDone!\n\tSetting up arrays...']);
     
     quanNames = fieldnames(chunks{1}.averaged);
     quanNames(strncmp(quanNames, 'params',6)) = []; 
@@ -25,6 +23,7 @@ function output = AverageMergeChunks( obj )
     quanNames(endsWith(quanNames, '_std')) = [];
 
     aveSqValNames = quanNames(endsWith(quanNames, '_avesq'));
+
     for i=1:length(aveSqValNames)
         val = aveSqValNames{i};
         tmp=strrep(val, '_avesq', '_std');
@@ -35,38 +34,62 @@ function output = AverageMergeChunks( obj )
         val = quanNames{jj};
         averaged.(val) = 0;
     end
-    
-    n_traj_tot = 0;
-    for jj = 1:nChunks
-        n_traj_tot = n_traj_tot + chunks{jj}.params.n_traj;
-    end
-    
 
-    params.n_traj = n_traj_tot;
-    for ii=1:nChunks
-        data = chunks{ii}.averaged;
+    stdQuanErrNames=cell(size(stdQuanNames));
+    for jj=1:length(stdQuanNames)
+        val = stdQuanNames{jj};
+        averaged.(val) = 0;
+    end
+
+    n_traj_tot = 0;
+
+    fprintf(['Done!\n\tReadAveraging chunks...\t[ 00%% ]']); percentCompletionOld = 0;
+    for i=1:nChunks
+        if i ~= 1
+            aveCnkPath = obj.AveragedChunkPath(obj.chunkNumbers(i));       
+            tmp = load(aveCnkPath);
+            chunks{i} = tmp;
+        end
+
+        n_traj_tot = n_traj_tot + chunks{i}.params.n_traj;
         for jj=1:length(quanNames)
             val = quanNames{jj};
-            averaged.(val) = averaged.(val) + data.(val).* ...
-                (chunks{ii}.params.n_traj/n_traj_tot);
+            averaged.(val) = averaged.(val) + chunks{i}.averaged.(val).* ...
+                                                chunks{i}.params.n_traj;
+        end
+    
+        for jj=1:length(stdQuanNames)
+            val = stdQuanNames{jj};
+
+            averaged.(val) = averaged.(val) + chunks{i}.averaged.(val).* ...
+                                    chunks{i}.params.n_traj;
+        end
+
+        chunks{i} = [];
+        percentCompletion = floor(i/nChunks*10);
+        if percentCompletion > percentCompletionOld
+            percentCompletionOld = percentCompletion;
+            fprintf(['\b\b\b\b\b',num2str(percentCompletion*10), '%% ]']);
         end
     end
 
-    % Add the std of different quantities
+    fprintf(['\n\tFinishing...']);
+    params.n_traj = n_traj_tot;
+
+    for jj=1:length(quanNames)
+        averaged.(quanNames{jj}) = averaged.(quanNames{jj})./n_traj_tot;
+    end
+
     for jj=1:length(stdQuanNames)
         val = stdQuanNames{jj};
         valErr = strrep(val, '_std', '_err');
-
-        averaged.(val) = 0;
-        for ii=1:nChunks
-            data = chunks{ii}.averaged;
-            averaged.(val) = averaged.(val) + data.(val).* ...
-                (chunks{ii}.params.n_traj/n_traj_tot);
-        end
+        averaged.(val) = averaged.(val)./n_traj_tot;
         averaged.(val) = sqrt(averaged.(val));
         averaged.(valErr) = averaged.(val)/sqrt(n_traj_tot);
     end
 
+
+    % Add the std of different quantities
 
     
     % Compute the std of quantities for which we got avesq and ave

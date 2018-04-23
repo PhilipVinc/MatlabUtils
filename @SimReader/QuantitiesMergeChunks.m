@@ -1,4 +1,4 @@
-function output = QuantitiesMergeChunks( obj )
+function output = QuantitiesMergeChunks( obj, n_traj_tot )
 %QUANTITIESMERGECHUNKS Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,14 +6,13 @@ function output = QuantitiesMergeChunks( obj )
     chunks = cell(1, nChunks);
 
     fprintf(['Merging ', num2str(nChunks), ' quantities - value chunks.']);
-    fprintf(['\tReading...']);
+    fprintf(['\tReading First chunk...']);
         
-    for i=1:nChunks
-        aveCnkPath = obj.QuantitiesChunkPath(obj.chunkNumbers(i));       
-        tmp = load(aveCnkPath);
-        chunks{i} = tmp;
-    end
-    fprintf(['Done!\n\tMerging...']);
+    aveCnkPath = obj.QuantitiesChunkPath(obj.chunkNumbers(1));       
+    tmp = load(aveCnkPath);
+    chunks{1} = tmp;
+
+    fprintf(['\tDone!\n\tSetting up arrays...']);
     
     quanNames = fieldnames(chunks{1}.quantities);
     quanNames(strncmp(quanNames, 'params',6)) = []; 
@@ -23,13 +22,8 @@ function output = QuantitiesMergeChunks( obj )
         val = quanNames{jj};
         quantities.(val) = 0;
     end
-    
-    n_traj_tot = 0;
-    for jj = 1:nChunks
-        n_traj_tot = n_traj_tot + chunks{jj}.params.n_traj;
-    end
-    
     tmpCnk = chunks{1}.quantities;
+
     for jj=1:length(quanNames)
         val = quanNames{jj};
         if (length(size(tmpCnk.(val))) == 2)
@@ -42,8 +36,16 @@ function output = QuantitiesMergeChunks( obj )
     end
 
     traj_i = 1;
-    for ii=1:nChunks
-        data = chunks{ii};
+
+    fprintf(['Done!\n\tReadSumming chunks...\t[ 00%% ]']); percentCompletionOld = 0;
+    for i=1:nChunks
+        if i ~= 1
+            aveCnkPath = obj.QuantitiesChunkPath(obj.chunkNumbers(i));       
+            tmp = load(aveCnkPath);
+            chunks{i} = tmp;
+        end
+        data = chunks{i};
+
         traj_i_end = traj_i+data.params.n_traj-1;
         for jj=1:length(quanNames)
             val = quanNames{jj};
@@ -60,8 +62,15 @@ function output = QuantitiesMergeChunks( obj )
             quantities.(val) = qty;
         end
         traj_i = traj_i + data.params.n_traj;
-    end
 
+        chunks{i} = [];
+
+        percentCompletion = floor(i/nChunks*10);
+        if percentCompletion > percentCompletionOld
+            fprintf(['\b\b\b\b\b',num2str(percentCompletion*10), '%% ]']);
+        end
+    end
+   
     aveDataPath = fullfile(obj.averagedPath, obj.fileQuantitiesFileName);
     fprintf(['Done!\n\tSaving...']);
     save(aveDataPath,'quantities', 'params');

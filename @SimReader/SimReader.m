@@ -168,7 +168,7 @@ classdef (Abstract) SimReader < handle
         output = MergeChunksData( obj );
         output = ReadDatFiles( obj );
         output = AverageMergeChunks( obj );
-        output = QuantitiesMergeChunks( obj );
+        output = QuantitiesMergeChunks( obj , n_traj_tot);
         output = FixEditDate(obj, avePath, dataPath);
         output = EstimateAnalizedFolder(obj);
         output = ReadAnalizeStoreData( obj );
