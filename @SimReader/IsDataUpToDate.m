@@ -8,7 +8,11 @@ function isUpdated = IsDataUpToDate( obj, analizedMatPath, dataPath)
     end
 
     objToLoad = dir(analizedMatPath);
-    dateObj = datetime(objToLoad(1).date, 'Locale',  get(0, 'Language'));
+    try
+        dateObj = datetime(objToLoad(1).date, 'Locale',  get(0, 'Language'));
+    catch
+        dateObj = datetime(objToLoad(1).date, 'Locale',  'en');
+    end
     
     if (exist(dataPath, 'file') == 7)
         % get the Folder Name
@@ -21,13 +25,21 @@ function isUpdated = IsDataUpToDate( obj, analizedMatPath, dataPath)
 
         for i=1:length(folderToLoad)
             if strcmp(folderToLoad(i).name, folderName)
-                dateFolder = datetime(folderToLoad(i).date, 'Locale',  get(0, 'Language'));
+                try
+                    dateFolder = datetime(folderToLoad(i).date, 'Locale',  get(0, 'Language'));
+                catch
+                    dateFolder = datetime(folderToLoad(i).date, 'Locale',  'en');
+                end
                 break;
             end
         end
     else
         folderToLoad = dir(dataPath);
-        dateFolder = datetime(folderToLoad(1).date, 'Locale',  get(0, 'Language'));
+        try
+            dateFolder = datetime(folderToLoad(1).date, 'Locale',  get(0, 'Language'));
+        catch
+            dateFolder = datetime(folderToLoad(1).date, 'Locale',  'en');
+        end
     end
     
     if dateObj > dateFolder 
