@@ -85,7 +85,18 @@ function nTrajsRead = ReadAllChunk( obj, chunkId, maxTrajs )
         for i=1:obj.varN
             % Read the file
             dataSize = fread(dF{i}, 1, 'uint64');
-            trajData = fread(dF{i}, dataSize/8, 'float64');
+            try
+                trajData = fread(dF{i}, dataSize/8, 'float64');
+            catch
+                fprintf(['Reducing size..']);
+                kn = kn-1;
+                nTrajs = kn;
+                maxTrajs = kn;
+                for ii=1:obj.varN
+                    data{ii} = data{ii}(:,:,1:kn);
+                end
+                break;
+            end
             
             % convert to complex if needed;
             if (obj.varTypes(i) == 22)

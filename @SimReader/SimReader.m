@@ -71,6 +71,10 @@ classdef (Abstract) SimReader < handle
     methods
         function obj = SimReader(simPath, varargin)
             
+            % Init parameters
+            obj.params = [];
+            obj.magicSignature = [137; 80; 78; 67; 13; 10; 26; 10];
+            obj.varNames = strings(1,1);
             defAnPars.active = false;
             
             p=inputParser;
@@ -111,10 +115,6 @@ classdef (Abstract) SimReader < handle
             end
             
             obj.forceAnalysis = pars.ForceAnalysis;
-            obj.params = [];
-            
-            obj.magicSignature = [137; 80; 78; 67; 13; 10; 26; 10];
-            obj.varNames = strings(1,1);
             
             obj.EstimateAnalizedFolder();
             obj.ReadAnalizeStoreData();
@@ -213,10 +213,10 @@ classdef (Abstract) SimReader < handle
     methods(Access=public)
         function AddTrajectories(obj, ntraj)
             commandStr = ['$HOME/bin/', 'sim', ...
-                ' -i ', obj.simPath];
-            commandStr = [commandStr, ' --processes ', num2str(2*feature('numcores'))];
+                ' -i ', obj.simPath '/_sim.ini'];
+            commandStr = [commandStr, ' max_processes ', num2str(2*feature('numcores'))];
             if (ntraj ~= 0)
-                commandStr = [commandStr, ' --n_traj ' , num2str(ntraj)];
+                commandStr = [commandStr, ' n_traj ' , num2str(obj.params.n_traj + ntraj)];
             end
             fprintf([commandStr, '\n']);
             tic;
@@ -227,18 +227,41 @@ classdef (Abstract) SimReader < handle
         end
         
         function Reload(obj, varargin)
-            
             p=inputParser;
             p.KeepUnmatched = true;
             addParameter(p,'SaveTrajectories', false, @islogical);
+            addParameter(p,'Trajectories', 0, @isnumeric);
+            addParameter(p,'ForceNoAnalysis', false, @islogical);
+            addParameter(p,'ForceAnalysis', false, @islogical);
             parse(p, varargin{:});
             pars=p.Results;
             
             obj.keepInMemory = pars.SaveTrajectories;
+            obj.trajsToKeep = pars.Trajectories;
+            obj.ForceNoAnalysis = pars.ForceNoAnalysis;
+            if (obj.keepInMemory && obj.trajsToKeep == 0)
+                obj.trajsToKeep = intmax;
+            elseif (~obj.keepInMemory && obj.trajsToKeep ~= 0)
+                obj.keepInMemory = true;
+            end
             
+            obj.forceAnalysis = pars.ForceAnalysis;
+
             obj.ReadAnalizeStoreData();
         end
         
+        function LoadTrajectories(obj, trajsToKeep)
+            obj.trajsToKeep = trajsToKeep;
+            if (obj.keepInMemory && obj.trajsToKeep == 0)
+                obj.trajsToKeep = intmax;
+            elseif (~obj.keepInMemory && obj.trajsToKeep ~= 0)
+                obj.keepInMemory = true;
+            end
+
+            obj.ReadAnalizeStoreData();
+        end
+        
+
         function path = GetFolderName(obj)
             path = obj.simPath;
         end
