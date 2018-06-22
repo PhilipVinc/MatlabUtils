@@ -66,6 +66,17 @@ classdef BaseSimRunner < handle
                 end
             end
             
+            if (isKey(obj.params, 'PBC'))
+                if ~islogical(obj.params('PBC'))
+                    if isnumeric(obj.params('PBC'))
+                        obj.params('PBC') = logical(obj.params('PBC'));
+                    elseif isstr(obj.params('PBC')) || isstring(obj.params('PBC'))
+                        tmp = str2num(obj.params('PBC'))
+                        obj.params('PBC') = logical(str2num(obj.params('PBC')));
+                    end
+                end
+            end
+            
             obj.PostProcessParams();
             if (obj.fileFormat == 'ini')
                 paramsText = obj.Params2CellTextINI();
