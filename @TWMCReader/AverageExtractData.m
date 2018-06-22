@@ -23,7 +23,9 @@ function res = AverageExtractData( obj, data, params )
     
     % Noise stuff
     trajId = obj.GetVarId('traj');
-    randomVarNames = obj.varNames(2:end);
+    randomVarIds = 1:length(obj.varNames);
+    randomVarIds(trajId) = [];
+    randomVarNames = obj.varNames(randomVarIds);
     randomVarIds = arrayfun(@obj.GetVarId, randomVarNames);
 
     
@@ -155,6 +157,7 @@ function res = AverageExtractData( obj, data, params )
                                                            ,1),2); % avg across xy and trajs
                                                         %   x  y   real
 
+                % corr1ij_t = \sum_r <a_r^\dag a_r'> - <a_r><(a_r')^*>) (Alberto's quantity)
                                         %       y   x        
                 corr1ij_t(dx+1,dy+1,:) = mean(mean(... % Tr[
                                                             mean(mean(...
@@ -177,16 +180,18 @@ function res = AverageExtractData( obj, data, params )
             end
         end       
 
-        g1ij_a = mean(g1ij_t, 3);
+        corr1ij_a = mean(corr1ij_t, 3);
         distX = [0:floor(nx/2) , floor((nx-1)/2):-1:1];
         distY = [0:floor(ny/2) , floor((ny-1)/2):-1:1];
+        NormFac =sum(sum(corr1ij_a));
         V = 0;
         for i=1:nx
             for j=1:ny
-                V = V + corr1ij_t(i,j)*(distX(i)^2+distY(j)^2);
+                V = V + corr1ij_a(i,j)*(distX(i)^2+distY(j)^2);
             end
         end
-        V = V/(nx*ny);
+        V_nxny = V/(nx*ny); 
+        V = V/NormFac;
 
     elseif ( computeG2 == true && (params.nx == 1 | params.ny == 1))
         fprintf('g1/2..');
@@ -216,19 +221,22 @@ function res = AverageExtractData( obj, data, params )
             g2ij_t(r+1,:) = real(mean(mean(beta_abs_xy_t.*circshift(beta_abs_xy_t,r,1),1),3))./(nat_cut.^2);
         end       
         
-        g1ij_a = mean(g1ij_t, 2);
+        corr1ij_a = mean(corr1ij_t, 2);
         distX = [0:floor(nx/2) , floor((nx-1)/2):1];
+        NormFac =sum(sum(corr1ij_t));
         V = 0;
         for i=1:nx
-            V = V + g1ij_a(i)*distX(i)^2;
+            V = V + corr1ij_a(i)*distX(i)^2;
         end
-        V = V/(nx*ny);
+        V_nxny = V/(nx*ny); 
+        V = V/NormFac
 
     else
         n_kxy_t = zeros(1,1);
         g1ij_t = zeros(1,1);
         g2ij_t = zeros(1,1);
         corr1ij_t = zeros(1,1);
+        V_nxny = zeros(1,1);
         V = zeros(1,1);
     end    
     
@@ -255,6 +263,7 @@ function res = AverageExtractData( obj, data, params )
     res.ave.g1ij_t = g1ij_t;
     res.ave.corr1ij_t = corr1ij_t;
     res.ave.g2ij_t = g2ij_t;
+    res.ave.V_nxny = V_nxny;
     res.ave.V = V;
     
     
@@ -267,10 +276,18 @@ function res = AverageExtractData( obj, data, params )
     t_cut = floor(t_length*0.95);
     res.quan.n_hist_tave_vals = mean(n_t(:,t_cut:end,:),2);
     
-    %% Binder
-    t_begin ) ceil(t_length*1/5);
-    res.quan.bist_coeff_nt = moment(n_t(:,t_begin:end,:),2,2).^2./moment(n_t(:,t_begin:end,:),4,2);
-    res.quan.bist_coeff_alphat = abs(moment(n_t(:,t_begin:end,:),2,2)).^2./abs(moment(n_t(:,t_begin:end,:),4,2));
+    %% Bistability Coefficient
+    fprintf('bist..');
+    t_begin = ceil(t_length*1/20);
+ %   res.quan.bist_coeff_nt = moment(n_t(:,t_begin:end,:),2,2).^2./moment(n_t(:,t_begin:end,:),4,2);
+ %   res.quan.bist_coeff_alphat = abs(moment(data{trajId}(:,t_begin:end,:),2,2)).^2./abs(moment(data{trajId}(:,t_begin:end,:),4,2));
     
+    fprintf('s..');
+    n_t = smoothDirDumb(n_t, 2, 30);
+    alpha_t = smoothDirDumb(data{trajId}, 2, 30);
+    fprintf('bs..');
+    res.quan.bist_coeff_nt_smoothed = moment(n_t(:,t_begin:end,:),2,2).^2./moment(n_t(:,t_begin:end,:),4,2);
+    res.quan.bist_coeff_alphat_smoothed = abs(moment(alpha_t(:,t_begin:end,:),2,2)).^2./abs(moment(alpha_t(:,t_begin:end,:),4,2));
+ 
 end
 

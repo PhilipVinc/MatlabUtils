@@ -91,6 +91,21 @@
 	[
 		{"name":"n_traj", "kind":"required", "type":"numeric"}
 	]
+},
+"TWMCReader.LoadTrajectories":
+{
+	"inputs":
+	[
+		{"name":"n_traj", "kind":"required", "type":"numeric"}
+	]
+},
+"LiebReader.LoadTrajectories":
+{
+	"inputs":
+	[
+		{"name":"n_traj", "kind":"required", "type":"numeric"}
+	]
 }
+
 
 }
