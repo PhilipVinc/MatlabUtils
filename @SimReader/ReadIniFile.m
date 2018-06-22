@@ -85,10 +85,14 @@ function  output = ReadIniFile(obj)
         for ii=1:length(fields)
             field = fields{ii};
             tmp = params.(field);
+            
             [val, success] = str2num(tmp);
-            if success
+            if (success && (~isstring(val) || isstr(val) ))
                 params.(field) = val;
-            elseif strcmp(tmp(end-3:end), '.dat')
+            elseif ((length(tmp)>3 && strcmp(tmp(end-3:end), '.dat')) || (length(tmp)>4 && strcmp(tmp(end-4:end), '.dat"')))
+                if isstring(val)
+                    tmp = char(erase(val, '"'));
+                end
                 dataFilePath = fullfile(obj.simPath, tmp);
 
                 success = false;
@@ -103,7 +107,7 @@ function  output = ReadIniFile(obj)
                 if ~success
                     params.(field) = tmp;
                     fprintf(['INI: Could not find file ', dataFilePath, ...
-                        ' for key ', field], '\n');
+                        ' for key ', field, '\n']);
                 end
             else
                 params.(field) = tmp;
