@@ -23,8 +23,8 @@ function res = AverageExtractData( obj, data, params )
         res.params.F_B = params.F(2:3:end);
         res.params.F_C = params.F(3:3:end);
         
-        res.params.F_tot=sum(abs(params.F_A))+sum(abs(params.F_B))+sum(abs(params.F_C));
-        res.params.I_tot=sum(abs(params.F_A).^2)+sum(abs(params.F_B).^2)+sum(abs(params.F_C).^2);
+        res.params.F_tot=sum(abs(res.params.F_A))+sum(abs(res.params.F_B))+sum(abs(res.params.F_C));
+        res.params.I_tot=sum(abs(res.params.F_A).^2)+sum(abs(res.params.F_B).^2)+sum(abs(res.params.F_C).^2);
 
     elseif (isfield(params, 'F_A')&& isfield(params, 'F_B') && isfield(params, 'F_C'))
         res.params.F_A = obj.ConvertInterleavedToComplex(params.F_A, length(params.F_A) >= 2*nxy);
@@ -53,7 +53,9 @@ function res = AverageExtractData( obj, data, params )
     
     % Noise stuff
     trajId = obj.GetVarId('traj');
-    randomVarNames = obj.varNames(2:end);
+    randomVarNumbers = 1:length(obj.varNames);
+    randomVarNumbers(trajId)=[];
+    randomVarNames = obj.varNames(randomVarNumbers);
     randomVarIds = arrayfun(@obj.GetVarId, randomVarNames);
 
     
@@ -72,13 +74,14 @@ function res = AverageExtractData( obj, data, params )
         nameAvesq = strrep(char(randomVarNames(i)), '_Realizations', '_avesq');
         varData = data{randomVarIds(i)};
         
+        
         if ~(size(varData,2) == 1)
             fprintf('Error, the matrix has more than 1 element');
         end
         
         res.ave.(nameAvg) = mean(varData,3);
         res.ave.(nameStd) = std(varData,0,3);
-        res.ave.(nameAvesq) = (rssq(varData,3).^2)./n_traces;
+        res.ave.(nameAvesq) = 0;%(rssq(varData,3).^2)./n_traces;
     end
 
     
@@ -317,10 +320,16 @@ function res = AverageExtractData( obj, data, params )
         dNC = nEdgesC(2)-nEdgesC(1);
         NvalsC = nEdgesC(1:end-1) + diff(nEdgesC);
 
+        initialFrame=1;
+        if isfield(res.params, 'F_initialRelaxation')
+            initialFrame = find(res.params.t > res.params.F_initialRelaxation,1);
+        end
+        endFrame =  length(res.params.t);
+        
         % Average across al A,B,C
-        nA_t = squeeze(mean(n_t(1:3:end,:,:),1));
-        nB_t = squeeze(mean(n_t(2:3:end,:,:),1));
-        nC_t = squeeze(mean(n_t(3:3:end,:,:),1));
+        nA_t = squeeze(mean(n_t(1:3:end,initialFrame:endFrame,:),1));
+        nB_t = squeeze(mean(n_t(2:3:end,initialFrame:endFrame,:),1));
+        nC_t = squeeze(mean(n_t(3:3:end,initialFrame:endFrame,:),1));
         
         % smooth the data
         for i=1:n_traces
@@ -340,8 +349,10 @@ function res = AverageExtractData( obj, data, params )
         nC_t(nC_t<nMinC) = nMinC;  nC_t(nC_t>nMaxC) = nMaxC;
         
         %
-        tVals = params.t(1:tSkip:end);
-        FVals_t = res.params.Ftot_t(1:tSkip:end);
+        
+            
+        tVals = params.t(initialFrame:tSkip:endFrame);
+        FVals_t = res.params.Ftot_t(initialFrame:tSkip:endFrame);
 
         % Fix for the fact that Fvalues might be slightly asymmetric when going up and down the pulse.
         % Here I take the values going up, and 'interpolate' the values going down to those going up.
@@ -364,7 +375,7 @@ function res = AverageExtractData( obj, data, params )
             [nbinvals_aveA, ~] = histcounts(nA_t(i,:), nEdgesA, 'Normalization', 'count');
             [nbinvals_aveB, ~] = histcounts(nB_t(i,:), nEdgesB, 'Normalization', 'count');
             [nbinvals_aveC, ~] = histcounts(nC_t(i,:), nEdgesC, 'Normalization', 'count');
-
+    
             Fid = uniqueIds(i);
             PnA(Fid,:) = PnA(Fid,:) + nbinvals_aveA;
             PnB(Fid,:) = PnB(Fid,:) + nbinvals_aveB;

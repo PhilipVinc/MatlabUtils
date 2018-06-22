@@ -88,7 +88,8 @@ classdef LiebRunner < BaseSimRunner
             obj.MergeCellsInSingleEntry('U');
             obj.MergeCellsInSingleEntry('E');
             obj.MergeCellsInSingleEntry('F');
-
+            
+            obj.SetKandGaussian('F');
             obj.CreateTimeDependent('F');
         end
         
