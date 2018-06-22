@@ -31,6 +31,7 @@ classdef BaseSimRunner < handle
     methods
         function obj = BaseSimRunner()
             obj.GenerateName();
+            %obj.SetTOML();
         end
         
         CreateFolder(obj, folder);
@@ -78,7 +79,7 @@ classdef BaseSimRunner < handle
             end
             
             obj.PostProcessParams();
-            if (obj.fileFormat == 'ini')
+            if (strcmp(obj.fileFormat,'ini'))
                 paramsText = obj.Params2CellTextINI();
             else
                 paramsText = obj.Params2CellTextToml();
@@ -88,8 +89,8 @@ classdef BaseSimRunner < handle
         
         function Execute(obj)
             commandStr = [obj.programRelativePath, obj.programName, ...
-                ' -i ', obj.simPath];
-            commandStr = [commandStr, ' --processes ', num2str(obj.nCores)];
+                ' -i ', obj.simPath,'/', obj.iniFileName];
+            commandStr = [commandStr, ' max_processes ', num2str(obj.nCores)];
             tic;
             system(commandStr);
             tt = toc;
@@ -98,7 +99,7 @@ classdef BaseSimRunner < handle
         end
         
         function fName = IniFilePath(obj)
-            if (obj.fileFormat == 'ini')
+            if (strcmp(obj.fileFormat,'ini'))
                 fName = obj.iniFileName;
             else
                 fName = obj.tomlFileName;

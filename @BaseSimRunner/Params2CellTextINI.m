@@ -12,7 +12,7 @@ function paramsText = Params2CellTextINI( obj )
                 % If it's complex, interleave real and complex part
                 fname = ['_',allKeys{i},'.dat'];
                 %paramsText{end+1} = ['"',allKeys{i}, '" = "', fname,'"'];
-                paramsText{end+1} = [allKeys{i}, ' = ', fname ];
+                paramsText{end+1} = [allKeys{i}, ' = "', fname, '"'];
                 if ~isreal(tmp)
                     tmpr=real(tmp);
                     tmpi=imag(tmp);
@@ -38,8 +38,17 @@ function paramsText = Params2CellTextINI( obj )
                     paramsText{end+1} = ['"',allKeys{i}, '.imag" = ', num2str(imag(tmp))];
                 end
             end
+        elseif islogical(tmp)
+            if (tmp == true)
+                tmpStr = 'true';
+            else
+                tmpStr = 'false';
+            end
+            paramsText{end+1} = [allKeys{i}, ' = ', tmpStr];
+        elseif (isstr(tmp) || isstring(tmp))
+            paramsText{end+1} = [allKeys{i}, ' = "', tmp,'"'];
         else
-            paramsText{end+1} = [allKeys{i}, ' = ', tmp];
+            paramsText{end+1} = [allKeys{i}, ' = ', tmpStr];
         end
     end
 end
