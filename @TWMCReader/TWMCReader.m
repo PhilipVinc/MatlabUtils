@@ -7,7 +7,7 @@ classdef TWMCReader < SimReader
     end
 
     properties(Access = protected)
-        VERSION = 1.19; % 1.15 = added bist_coeff 1.16 smooth
+        VERSION = 1.20; % 1.15 = added bist_coeff 1.16 smooth
     end
     
     methods
